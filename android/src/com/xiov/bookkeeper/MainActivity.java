@@ -2,35 +2,33 @@ package com.xiov.bookkeeper;
 
 import android.app.Activity;
 import android.os.Bundle;
-import android.webkit.WebSettings;
 import android.webkit.WebView;
+import android.webkit.WebSettings;
 import android.webkit.WebViewClient;
+import android.view.ViewGroup;
+import android.widget.FrameLayout;
 
 public class MainActivity extends Activity {
-    private WebView webView;
+    WebView webView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
 
-        webView = findViewById(R.id.webView);
-        WebSettings webSettings = webView.getSettings();
+        webView = new WebView(this);
+        webView.setLayoutParams(new FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT
+        ));
 
-        webSettings.setJavaScriptEnabled(true);
-        webSettings.setAllowFileAccess(true);
-        webSettings.setDomStorageEnabled(true);
+        WebSettings settings = webView.getSettings();
+        settings.setJavaScriptEnabled(true);
+        settings.setDomStorageEnabled(true);
+        settings.setAllowFileAccess(true);
 
         webView.setWebViewClient(new WebViewClient());
-        webView.loadUrl("file:///android_asset/www/index.html"); 
-    }
+        webView.loadUrl("file:///android_asset/www/index.html");
 
-    @Override
-    public void onBackPressed() {
-        if (webView.canGoBack()) {
-            webView.goBack();
-        } else {
-            super.onBackPressed();
-        }
+        setContentView(webView);
     }
 }
