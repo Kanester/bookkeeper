@@ -5,7 +5,7 @@ set -e
 # ========================
 # CONFIGURATION (DEBUG ONLY)
 # ========================
-APP_NAME="BookKeeper"
+APP_NAME="BookLet"
 PACKAGE_NAME="com.xiov.bookkeeper"
 ANDROID_JAR="$ANDROID_HOME/platforms/android-34/android.jar"
 APK_NAME="app.apk"
@@ -29,6 +29,8 @@ echo -e "${GREEN}==> Building in DEBUG mode!${RESET}"
 for tool in aapt2 d8 apksigner zipalign pnpm javac keytool; do
   command -v $tool >/dev/null || { echo -e "${RED}Missing $tool${RESET}"; exit 1; }
 done
+
+sleep 3
 
 # ========================
 # Build web assets
@@ -60,10 +62,12 @@ done
 # AAPT2 link
 # ========================
 echo -e "${GREEN}==> Linking resources...${RESET}"
+rm -rf build/debug
+mkdir build/debug
 aapt2 link \
   -I "$ANDROID_JAR" \
   --manifest AndroidManifest.xml \
-  -o build/base.apk \
+  -o build/debug/base.apk \
   -R compiled/*.flat \
   --java gen \
   --min-sdk-version 21 \
@@ -86,27 +90,27 @@ javac \
 # ========================
 echo -e "${GREEN}==> Creating classes.dex...${RESET}"
 cd classes
-jar cf ../build/classes.jar .
+jar cf ../build/debug/classes.jar .
 cd ..
 d8 \
   --lib "$ANDROID_JAR" \
   --min-api 21 \
-  --output build \
-  build/classes.jar
+  --output build/debug \
+  build/debug/classes.jar
 
 # ========================
 # Merge into APK
 # ========================
 echo -e "${GREEN}==> Merging classes.dex into APK...${RESET}"
-cd build
+cd build/debug
 zip -u base.apk classes.dex
-cd ..
+cd ../..
 
 # ========================
 # Zipalign
 # ========================
 echo -e "${GREEN}==> Aligning APK...${RESET}"
-zipalign -f 4 build/base.apk build/app.unaligned.apk
+zipalign -f 4 build/debug/base.apk build/debug/app.unaligned.apk
 
 # ========================
 # Keystore (Debug)
@@ -129,7 +133,7 @@ apksigner sign \
   --ks "$KEYSTORE_FILE" \
   --ks-pass pass:$KS_PASS \
   --key-pass pass:$KEY_PASS \
-  --out "build/$APK_NAME" \
-  build/app.unaligned.apk
+  --out "build/debug/$APK_NAME" \
+  build/debug/app.unaligned.apk
 
-echo -e "${GREEN}Build complete! Final APK: build/$APK_NAME${RESET}"
+echo -e "${GREEN}Build complete! Final APK: build/debug/$APK_NAME${RESET}"
