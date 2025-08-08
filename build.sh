@@ -2,41 +2,64 @@
 
 set -e
 
-# --- CONFIGURATION ---
+# ========================
+# CONFIGURATION (DEBUG ONLY)
+# ========================
 APP_NAME="BookKeeper"
 PACKAGE_NAME="com.xiov.bookkeeper"
 ANDROID_JAR="$ANDROID_HOME/platforms/android-34/android.jar"
-KEYSTORE_FILE="debug.keystore"
-KEY_ALIAS="debug"
 APK_NAME="app.apk"
 
-# --- COLORS ---
+# Debug keystore config
+KEYSTORE_FILE="debug.keystore"
+KEY_ALIAS="debug"
+KS_PASS="android"
+KEY_PASS="android"
+
+# Colors
 GREEN="\e[32m"
 RED="\e[31m"
 RESET="\e[0m"
 
-echo -e "${GREEN}==> 1. Building Svelte web app...${RESET}"
-cd ./web || { echo -e "${RED}Web folder not found!${RESET}"; exit 1; }
-pnpm build
+echo -e "${GREEN}==> Building in DEBUG mode!${RESET}"
 
-echo -e "${GREEN}==> 2. Copying built files to assets/www...${RESET}"
+# ========================
+# TOOL CHECKS
+# ========================
+for tool in aapt2 d8 apksigner zipalign pnpm javac keytool; do
+  command -v $tool >/dev/null || { echo -e "${RED}Missing $tool${RESET}"; exit 1; }
+done
+
+# ========================
+# Build web assets
+# ========================
+echo -e "${GREEN}==> Building web assets...${RESET}"
+cd ./web || { echo -e "${RED}Web folder not found!${RESET}"; exit 1; }
+rm -rf dist
+pnpm build
 mkdir -p ../android/assets/www
 rm -rf ../android/assets/www/*
 cp -r ./dist/* ../android/assets/www/
 cd ../android || { echo -e "${RED}Android folder not found!${RESET}"; exit 1; }
 
-# --- CLEAN & PREP ---
+# ========================
+# Clean old builds
+# ========================
 rm -rf build gen classes compiled
 mkdir -p build gen classes compiled
 
-# --- AAPT2 COMPILE ---
-echo -e "${GREEN}==> 3. Compiling XML resources with AAPT2...${RESET}"
+# ========================
+# AAPT2 compile
+# ========================
+echo -e "${GREEN}==> Compiling XML resources...${RESET}"
 find res -name '*.xml' | while read -r file; do
   aapt2 compile -o compiled/ "$file"
 done
 
-# --- AAPT2 LINK ---
-echo -e "${GREEN}==> 4. Linking resources and generating R.java...${RESET}"
+# ========================
+# AAPT2 link
+# ========================
+echo -e "${GREEN}==> Linking resources...${RESET}"
 aapt2 link \
   -I "$ANDROID_JAR" \
   --manifest AndroidManifest.xml \
@@ -48,56 +71,65 @@ aapt2 link \
   -A assets \
   --auto-add-overlay
 
-# --- JAVAC ---
-echo -e "${GREEN}==> 5. Compiling Java sources...${RESET}"
+# ========================
+# Compile Java
+# ========================
+echo -e "${GREEN}==> Compiling Java sources...${RESET}"
 javac \
   --release 11 \
   -classpath "$ANDROID_JAR" \
   -d classes \
   src/com/xiov/bookkeeper/*.java gen/com/xiov/bookkeeper/R.java
 
-# --- D8 ---
-echo -e "${GREEN}==> 6. Creating classes.jar...${RESET}"
+# ========================
+# Create classes.dex
+# ========================
+echo -e "${GREEN}==> Creating classes.dex...${RESET}"
 cd classes
 jar cf ../build/classes.jar .
 cd ..
-
-echo -e "${GREEN}==> 7. Generating classes.dex with D8...${RESET}"
 d8 \
   --lib "$ANDROID_JAR" \
-  --release \
   --min-api 21 \
   --output build \
   build/classes.jar
-  
-# --- MERGE .DEX INTO APK ---
-echo -e "${GREEN}==> 7. Merging classes.dex into APK...${RESET}"
+
+# ========================
+# Merge into APK
+# ========================
+echo -e "${GREEN}==> Merging classes.dex into APK...${RESET}"
 cd build
 zip -u base.apk classes.dex
 cd ..
 
-# --- ZIPALIGN ---
-echo -e "${GREEN}==> 8. Aligning APK...${RESET}"
+# ========================
+# Zipalign
+# ========================
+echo -e "${GREEN}==> Aligning APK...${RESET}"
 zipalign -f 4 build/base.apk build/app.unaligned.apk
 
-# --- KEYSTORE ---
+# ========================
+# Keystore (Debug)
+# ========================
 if [ ! -f "$KEYSTORE_FILE" ]; then
-  echo -e "${GREEN}==> 9. Generating debug keystore...${RESET}"
+  echo -e "${GREEN}==> Generating debug keystore...${RESET}"
   keytool -genkey -v \
     -keystore "$KEYSTORE_FILE" \
     -alias "$KEY_ALIAS" \
     -keyalg RSA -keysize 2048 -validity 10000 \
-    -storepass android -keypass android \
-    -dname "CN=BookKeeper, OU=., O=Xiov, L=., S=., C=."
+    -storepass $KS_PASS -keypass $KEY_PASS \
+    -dname "CN=$APP_NAME, OU=., O=XiovCom, L=., S=., C=."
 fi
 
-# --- SIGN APK ---
-echo -e "${GREEN}==> 10. Signing APK...${RESET}"
+# ========================
+# Sign APK (Debug)
+# ========================
+echo -e "${GREEN}==> Signing APK (DEBUG)...${RESET}"
 apksigner sign \
   --ks "$KEYSTORE_FILE" \
-  --ks-pass pass:android \
-  --key-pass pass:android \
+  --ks-pass pass:$KS_PASS \
+  --key-pass pass:$KEY_PASS \
   --out "build/$APK_NAME" \
   build/app.unaligned.apk
 
-echo -e "${GREEN}✅ Build complete! Final APK: build/$APK_NAME${RESET}"
+echo -e "${GREEN}Build complete! Final APK: build/$APK_NAME${RESET}"

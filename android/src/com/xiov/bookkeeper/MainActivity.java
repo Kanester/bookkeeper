@@ -11,6 +11,7 @@ import android.widget.FrameLayout;
 public class MainActivity extends Activity {
     WebView webView;
 
+		@SuppressWarnings("deprecation")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -24,7 +25,6 @@ public class MainActivity extends Activity {
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
-        settings.setAllowFileAccess(true);
         settings.setAllowFileAccess(true);
 				settings.setAllowFileAccessFromFileURLs(true);
 				settings.setAllowUniversalAccessFromFileURLs(true);
