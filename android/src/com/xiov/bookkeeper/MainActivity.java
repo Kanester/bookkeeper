@@ -25,6 +25,9 @@ public class MainActivity extends Activity {
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setAllowFileAccess(true);
+        settings.setAllowFileAccess(true);
+				settings.setAllowFileAccessFromFileURLs(true);
+				settings.setAllowUniversalAccessFromFileURLs(true);
 
         webView.setWebViewClient(new WebViewClient());
         webView.loadUrl("file:///android_asset/www/index.html");

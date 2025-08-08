@@ -1,8 +1,7 @@
 /build
-/build
+/assets
 /gen
 /classes
 /compiled
-debug.keystore
 *.keystore
 *.jks

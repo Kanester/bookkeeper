@@ -18,7 +18,6 @@ RESET="\e[0m"
 echo -e "${GREEN}==> 1. Building Svelte web app...${RESET}"
 cd ./web || { echo -e "${RED}Web folder not found!${RESET}"; exit 1; }
 pnpm build
-cp ./src/app.html ./dist/index.html
 
 echo -e "${GREEN}==> 2. Copying built files to assets/www...${RESET}"
 mkdir -p ../android/assets/www
